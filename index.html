@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Blur</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        #output {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .image-container {
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Blur</h1>
+    
+    <input type="file" id="imageInput" accept=".png, .jpg, .jpeg" onchange="handleImage()">
+    
+    <label for="blurIntensity">Blur Intensity:</label>
+    <input type="range" id="blurIntensity" min="1" max="10" value="5" onchange="handleImage()">
+    <span id="blurValue">5</span>
+    
+    <div id="output">
+        <div class="image-container" id="originalImageContainer">
+            <label for="originalImage">Original Image</label>
+            <img id="originalImage" alt="Original Image">
+        </div>
+        <div class="image-container" id="blurredImageContainer">
+            <label for="blurredImage">Blurred Image</label>
+            <img id="blurredImage" alt="Blurred Image">
+        </div>
+    </div>
+
+    <script>
+        function handleImage() {
+            const input = document.getElementById('imageInput');
+            const originalImageContainer = document.getElementById('originalImageContainer');
+            const blurredImageContainer = document.getElementById('blurredImageContainer');
+            const blurIntensity = document.getElementById('blurIntensity').value;
+            const blurValue = document.getElementById('blurValue');
+
+            blurValue.textContent = blurIntensity;
+
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+
+                    img.onload = function() {
+                        // Original Image
+                        document.getElementById('originalImage').src = img.src;
+                        
+                        // Blurred Image
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+
+                        const radius = Math.round(blurIntensity);
+                        const kernelSize = 2 * radius + 1;
+
+                        for (let y = 0; y < canvas.height; y++) {
+                            for (let x = 0; x < canvas.width; x++) {
+                                let totalR = 0, totalG = 0, totalB = 0, count = 0;
+
+                                for (let ky = -radius; ky <= radius; ky++) {
+                                    for (let kx = -radius; kx <= radius; kx++) {
+                                        const nx = x + kx;
+                                        const ny = y + ky;
+
+                                        if (nx >= 0 && nx < canvas.width && ny >= 0 && ny < canvas.height) {
+                                            const index = (ny * canvas.width + nx) * 4;
+                                            totalR += data[index];
+                                            totalG += data[index + 1];
+                                            totalB += data[index + 2];
+                                            count++;
+                                        }
+                                    }
+                                }
+
+                                const currentIndex = (y * canvas.width + x) * 4;
+                                data[currentIndex] = totalR / count;
+                                data[currentIndex + 1] = totalG / count;
+                                data[currentIndex + 2] = totalB / count;
+                            }
+                        }
+
+                        ctx.putImageData(imageData, 0, 0);
+
+                        document.getElementById('blurredImage').src = canvas.toDataURL("image/jpeg");
+                    };
+                };
+
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+</body>
+</html>
